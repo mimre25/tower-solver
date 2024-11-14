@@ -15,6 +15,11 @@ defmodule TowerSolver do
       Agent.update(agent, fn {done, total} -> {done, total + n} end)
     end
 
+    def render(agent) do
+      {done, total} = Progress.get(agent)
+      ProgressBar.render(done, total, suffix: :count)
+    end
+
     def init() do
       {:ok, agent} = Agent.start_link(fn -> {0, 1} end)
       agent
@@ -137,8 +142,7 @@ defmodule TowerSolver do
         )
         |> Enum.all?() and
         not (Enum.concat(rows, cols)
-             |> Enum.map(&has_duplicates?/1)
-             |> Enum.any?())
+             |> Enum.any?(&has_duplicates?/1))
     end
 
     # TODO: make this and others private
@@ -147,7 +151,7 @@ defmodule TowerSolver do
       Enum.uniq(list) != list
     end
 
-    @spec valid_line?([any()]) :: boolean()
+    @spec valid_line?([any(), ...]) :: boolean()
     def valid_line?([list, fst, snd]) do
       valid_line?(list, fst) && valid_line?(Enum.reverse(list), snd)
     end
@@ -188,8 +192,7 @@ defmodule TowerSolver do
 
     def fits_preset?(row, proposed_row) do
       Enum.zip(row, proposed_row)
-      |> Enum.map(fn {x, y} -> x == 0 or x == y end)
-      |> Enum.all?()
+      |> Enum.all?(fn {x, y} -> x == 0 or x == y end)
     end
 
     @spec solve(Game.t()) :: [Game.t()]
@@ -216,18 +219,16 @@ defmodule TowerSolver do
       Enum.filter(permus, fn p ->
         valid_line?(p, {c1, c2}) and fits_preset?(Enum.at(game.board, step), p)
       end)
-      |> Kernel.then(fn filtered_permus ->
+      |> Kernel.tap(fn filtered_permus ->
         # Update progress bar
         Progress.add_total(agent, length(filtered_permus))
-        {done, total} = Progress.get(agent)
-        ProgressBar.render(done, total, suffix: :count)
-        filtered_permus
+        Progress.render(agent)
       end)
       |> Enum.flat_map(fn p ->
         updated_game = set_row(game, step, p)
         cols = cols(updated_game)
 
-        if should_continue_step?(cols) do
+        if should_abort_step?(cols) do
           Progress.add_done(agent)
           []
         else
@@ -236,15 +237,14 @@ defmodule TowerSolver do
       end)
     end
 
-    defp should_continue_step?(cols) do
+    defp should_abort_step?(cols) do
       Enum.map(cols, fn c ->
         Enum.filter(
           c,
           fn x -> x != 0 end
         )
       end)
-      |> Enum.map(&has_duplicates?/1)
-      |> Enum.any?()
+      |> Enum.any?(&has_duplicates?/1)
     end
 
     def example() do
