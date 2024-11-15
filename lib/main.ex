@@ -2,7 +2,7 @@ defmodule TowerSolver.CLI do
   @moduledoc """
   pass
   """
-  def main(args \\ []) do
+  def main(_args \\ []) do
     constraints = %TowerSolver.Constraints{
       top: [2, 3, 1, 2, 3, 2],
       bottom: [2, 1, 4, 3, 3, 2],
