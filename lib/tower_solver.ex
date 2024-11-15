@@ -9,6 +9,12 @@ defmodule TowerSolver do
     """
     def add_done(agent) do
       Agent.update(agent, fn {done, total} -> {done + 1, total} end)
+      Progress.render(agent)
+    end
+
+    def add_done(agent, n) do
+      Agent.update(agent, fn {done, total} -> {done + n, total} end)
+      Progress.render(agent)
     end
 
     def add_total(agent, n) do
@@ -21,7 +27,7 @@ defmodule TowerSolver do
     end
 
     def init() do
-      {:ok, agent} = Agent.start_link(fn -> {0, 1} end)
+      {:ok, agent} = Agent.start_link(fn -> {0.0, 0.0} end)
       agent
     end
 
@@ -169,10 +175,14 @@ defmodule TowerSolver do
     def solve(game) do
       agent = Progress.init()
       permus = Permutations.permutate(for x <- 1..game.size, do: x)
-      solve_step(game, 0, permus, agent)
+      candidates_per_line = length(permus)
+      Progress.add_total(agent, :math.pow(candidates_per_line,game.size))
+      solution = solve_step(game, 0, permus, agent, candidates_per_line)
+      Progress.render(agent)
+      solution
     end
 
-    def solve_step(game, step, _, agent) when step == game.size do
+    def solve_step(game, step, _, agent, _) when step == game.size do
       Progress.add_done(agent)
 
       if valid?(game) do
@@ -182,9 +192,11 @@ defmodule TowerSolver do
       end
     end
 
-    def solve_step(game, step, permus, agent) do
+    def solve_step(game, step, permus, agent, permus_length) do
       c1 = Enum.at(game.constraints.left, step)
       c2 = Enum.at(game.constraints.right, step)
+
+      child_candidates = (permus_length ** (game.size - step - 1))
 
       Enum.filter(permus, fn p ->
         valid_line?(p, {c1, c2}) and
@@ -192,8 +204,9 @@ defmodule TowerSolver do
       end)
       |> Kernel.tap(fn filtered_permus ->
         # Update progress bar
-        Progress.add_total(agent, length(filtered_permus))
-        Progress.render(agent)
+        removed_candidates = (permus_length - length(filtered_permus))
+        n = removed_candidates * child_candidates
+        Progress.add_done(agent, n)
       end)
       |> Enum.flat_map(fn p ->
         updated_game = %{game | :board => Board.set_row(game.board, step, p)}
@@ -201,10 +214,10 @@ defmodule TowerSolver do
         cols = Board.cols(updated_game.board)
 
         if should_abort_step?(cols) do
-          Progress.add_done(agent)
+          Progress.add_done(agent, child_candidates)
           []
         else
-          solve_step(updated_game, step + 1, permus, agent)
+          solve_step(updated_game, step + 1, permus, agent, permus_length)
         end
       end)
     end
