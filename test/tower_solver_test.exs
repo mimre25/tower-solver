@@ -1,7 +1,5 @@
 defmodule TowerSolverTest do
-  alias TowerSolver.ListBoard
   alias TowerSolver.Game
-  alias TowerSolver.Board
   use ExUnit.Case
   doctest TowerSolver
 
