@@ -35,7 +35,8 @@ defmodule TowerSolver.MixProject do
       {:ex_doc, ">= 0.0.0", only: [:dev], runtime: false},
       {:gettext, ">= 0.0.0", only: [:dev], runtime: false},
       {:sobelow, ">= 0.0.0", only: [:dev], runtime: false},
-      {:mix_audit, ">= 0.0.0", only: [:dev], runtime: false}
+      {:mix_audit, ">= 0.0.0", only: [:dev], runtime: false},
+      {:benchee, "~> 1.0"}
     ]
   end
 end
