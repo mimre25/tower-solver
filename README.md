@@ -1,21 +1,9 @@
 # TowerSolver
 
-**TODO: Add description**
+A program to solve a game of `Towers`.
 
-## Installation
+For more information on the towers game, see
+https://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/towers.html#towershttps://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/towers.html#towers.
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `tower_solver` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:tower_solver, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/tower_solver>.
-
+> [!NOTE]
+> WIP - just a playground to experiment with elixir
