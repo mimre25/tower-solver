@@ -24,3 +24,5 @@ tower_solver-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+tower_solver
