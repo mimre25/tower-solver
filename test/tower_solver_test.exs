@@ -1,5 +1,7 @@
 defmodule TowerSolverTest do
+  alias TowerSolver.ListBoard
   alias TowerSolver.Game
+  alias TowerSolver.Board
   use ExUnit.Case
   doctest TowerSolver
 
@@ -55,7 +57,7 @@ defmodule TowerSolverTest do
     assert TowerSolver.Game.new(2, constraints) == %TowerSolver.Game{
              size: 2,
              constraints: constraints,
-             board: [[0, 0], [0, 0]]
+             board: %ListBoard{board: [[0, 0], [0, 0]]}
            }
   end
 
@@ -70,7 +72,7 @@ defmodule TowerSolverTest do
     game = %TowerSolver.Game{
       size: 3,
       constraints: constraints,
-      board: [[1, 2, 3], [2, 3, 1], [3, 1, 2]]
+      board: %ListBoard{board: [[1, 2, 3], [2, 3, 1], [3, 1, 2]]}
     }
 
     assert Game.valid?(game)
@@ -87,7 +89,7 @@ defmodule TowerSolverTest do
     expected_solution = %TowerSolver.Game{
       size: 3,
       constraints: constraints,
-      board: [[1, 2, 3], [2, 3, 1], [3, 1, 2]]
+      board: %ListBoard{board: [[1, 2, 3], [2, 3, 1], [3, 1, 2]]}
     }
 
     game = Game.new(3, constraints)
@@ -104,22 +106,27 @@ defmodule TowerSolverTest do
     }
 
     game = Game.new(6, constraints)
-    game = Game.set(game, 0, 1, 2)
-    game = Game.set(game, 4, 4, 5)
-    game = Game.set(game, 5, 2, 3)
-    game = Game.set(game, 5, 4, 1)
+    board = game.board
+    board = Board.set(board, 0, 1, 2)
+    board = Board.set(board, 4, 4, 5)
+    board = Board.set(board, 5, 2, 3)
+    board = Board.set(board, 5, 4, 1)
+
+    game = %{game | :board => board}
 
     expected_solution = %TowerSolver.Game{
       size: 6,
       constraints: constraints,
-      board: [
-        [5, 2, 6, 1, 3, 4],
-        [3, 5, 1, 6, 4, 2],
-        [4, 1, 2, 5, 6, 3],
-        [6, 4, 5, 3, 2, 1],
-        [1, 3, 4, 2, 5, 6],
-        [2, 6, 3, 4, 1, 5]
-      ]
+      board: %ListBoard{
+        board: [
+          [5, 2, 6, 1, 3, 4],
+          [3, 5, 1, 6, 4, 2],
+          [4, 1, 2, 5, 6, 3],
+          [6, 4, 5, 3, 2, 1],
+          [1, 3, 4, 2, 5, 6],
+          [2, 6, 3, 4, 1, 5]
+        ]
+      }
     }
 
     [result] = Game.solve(game)

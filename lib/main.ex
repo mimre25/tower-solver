@@ -11,10 +11,14 @@ defmodule TowerSolver.CLI do
     }
 
     game = TowerSolver.Game.new(6, constraints)
-    game = TowerSolver.Game.set(game, 0, 1, 2)
-    game = TowerSolver.Game.set(game, 4, 4, 5)
-    game = TowerSolver.Game.set(game, 5, 2, 3)
-    game = TowerSolver.Game.set(game, 5, 4, 1)
+    board = game.board
+
+    board = TowerSolver.Board.set(board, 0, 1, 2)
+    board = TowerSolver.Board.set(board, 4, 4, 5)
+    board = TowerSolver.Board.set(board, 5, 2, 3)
+    board = TowerSolver.Board.set(board, 5, 4, 1)
+
+    game = %{game | :board => board}
     solutions = TowerSolver.Game.solve(game)
     _ = Enum.map(solutions, fn x -> IO.puts("#{x}\n\n") end)
     IO.puts("Found #{length(solutions)} solutions")

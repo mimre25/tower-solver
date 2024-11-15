@@ -58,25 +58,24 @@ defmodule TowerSolver do
     @moduledoc """
     Documentation for `Game`.
     """
+    alias TowerSolver.ListBoard
+    alias TowerSolver.Board
+    alias TowerSolver.ReplaceAtAble
+
     @type t :: %__MODULE__{
-            size: integer,
+            size: integer(),
             constraints: TowerSolver.Constraints.t(),
-            board: [[integer]]
+            board: Board.t()
           }
     @enforce_keys [:size, :constraints, :board]
     defstruct [:size, :constraints, :board]
 
-    @spec new(integer, TowerSolver.Constraints.t()) :: Game.t()
+    @spec new(integer(), TowerSolver.Constraints.t()) :: Game.t()
     def new(size, constraints) do
       %Game{
         size: size,
         constraints: constraints,
-        board:
-          for _ <- 1..size do
-            for _ <- 1..size do
-              0
-            end
-          end
+        board: ListBoard.new(size)
       }
     end
 
@@ -90,7 +89,11 @@ defmodule TowerSolver do
           "\n" <>
           horizontal_line <>
           "\n" <>
-          (Enum.zip([term.constraints.left, term.board, term.constraints.right])
+          (Enum.zip([
+             term.constraints.left,
+             term.board.board,
+             term.constraints.right
+           ])
            |> Enum.map_join("\n", board_line)) <>
           "\n" <>
           horizontal_line <>
@@ -108,20 +111,10 @@ defmodule TowerSolver do
       end
     end
 
-    @spec rows(Game.t()) :: [[integer()]]
-    defp rows(game) do
-      game.board
-    end
-
-    @spec cols(Game.t()) :: [[integer()]]
-    defp cols(game) do
-      Enum.zip_with(game.board, &Function.identity/1)
-    end
-
     @spec valid?(Game.t()) :: boolean()
     def valid?(game) do
-      rows = rows(game)
-      cols = cols(game)
+      rows = Board.rows(game.board)
+      cols = Board.cols(game.board)
 
       Enum.zip_with(
         [
@@ -169,27 +162,6 @@ defmodule TowerSolver do
       cnt == constraint
     end
 
-    @spec set_row(Game.t(), integer(), [integer()]) :: Game.t()
-    def set_row(game, row_num, row) do
-      {_, snd} = Enum.split(game.board, row_num + 1)
-      fst = Enum.take(game.board, row_num)
-      %Game{game | board: Enum.concat([fst, [row], snd])}
-    end
-
-    @spec set(Game.t(), integer(), integer(), integer()) :: Game.t()
-    def set(game, row, col, value) do
-      board = game.board
-
-      board =
-        List.replace_at(
-          board,
-          row,
-          List.replace_at(Enum.at(board, row), col, value)
-        )
-
-      %{game | :board => board}
-    end
-
     def fits_preset?(row, proposed_row) do
       Enum.zip(row, proposed_row)
       |> Enum.all?(fn {x, y} -> x == 0 or x == y end)
@@ -217,7 +189,8 @@ defmodule TowerSolver do
       c2 = Enum.at(game.constraints.right, step)
 
       Enum.filter(permus, fn p ->
-        valid_line?(p, {c1, c2}) and fits_preset?(Enum.at(game.board, step), p)
+        valid_line?(p, {c1, c2}) and
+          fits_preset?(Enum.at(game.board.board, step), p)
       end)
       |> Kernel.tap(fn filtered_permus ->
         # Update progress bar
@@ -225,8 +198,9 @@ defmodule TowerSolver do
         Progress.render(agent)
       end)
       |> Enum.flat_map(fn p ->
-        updated_game = set_row(game, step, p)
-        cols = cols(updated_game)
+        updated_game = %{game | :board => Board.set_row(game.board, step, p)}
+
+        cols = Board.cols(updated_game.board)
 
         if should_abort_step?(cols) do
           Progress.add_done(agent)
@@ -267,6 +241,89 @@ defmodule TowerSolver do
       })
     end
   end
-end
 
-# TODO: Build it with list, tuple, something else?!? to benchmark
+  defprotocol ReplaceAtAble do
+    @type t() :: term()
+
+    @spec replace_at(ReplaceAtAble.t(), integer(), any()) :: ReplaceAtAble.t()
+    def replace_at(collection, index, value)
+  end
+
+  defimpl ReplaceAtAble, for: List do
+    def replace_at(collection, index, value) do
+      List.replace_at(collection, index, value)
+    end
+  end
+
+  defprotocol Board do
+    @type t() :: t()
+    # TODO: Build it with list, tuple, something else?!? to benchmark
+    # Whatever type used needs to implement enumerable
+    # Also need to either get `List.replace_at` for whatever type, or change this to something
+    # more generic
+    @spec rows(t) :: Enum.t()
+    def rows(board)
+
+    @spec cols(t) :: Enum.t()
+    def cols(board)
+
+    @spec set_row(Board.t(), integer(), [integer()]) :: Board.t()
+    def set_row(board, row_num, row)
+
+    @spec set(Board.t(), integer(), integer(), integer()) :: Board.t()
+    def set(board, row, col, value)
+  end
+
+  defmodule ListBoard do
+    @moduledoc """
+    TODO
+    """
+    @type t :: %__MODULE__{
+            board: [[integer()]]
+          }
+    defstruct [:board]
+
+    @spec new(integer()) :: ListBoard.t()
+    def new(size) do
+      %ListBoard{
+        board:
+          for _ <- 1..size do
+            for _ <- 1..size do
+              0
+            end
+          end
+      }
+    end
+  end
+
+  defimpl Board, for: ListBoard do
+    @spec rows(ListBoard) :: Enum.t()
+    def rows(board) do
+      board.board
+    end
+
+    @spec cols(ListBoard) :: Enum.t()
+    def cols(board) do
+      Enum.zip_with(board.board, &Function.identity/1)
+    end
+
+    @spec set_row(ListBoard, integer(), [integer()]) :: Board.t()
+    def set_row(board, row_num, row) do
+      {_, snd} = Enum.split(board.board, row_num + 1)
+      fst = Enum.take(board.board, row_num)
+      %ListBoard{board: Enum.concat([fst, [row], snd])}
+    end
+
+    @spec set(ListBoard, integer(), integer(), integer()) :: Board.t()
+    def set(board, row, col, value) do
+      %ListBoard{
+        board:
+          ReplaceAtAble.replace_at(
+            board.board,
+            row,
+            ReplaceAtAble.replace_at(Enum.at(board.board, row), col, value)
+          )
+      }
+    end
+  end
+end
