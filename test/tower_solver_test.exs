@@ -5,12 +5,16 @@ defmodule TowerSolverTest do
 
   test "game to_string" do
     assert to_string(
-             Game.new(3, %TowerSolver.Constraints{
-               top: [1, 1, 1],
-               bottom: [2, 2, 2],
-               left: [3, 3, 3],
-               right: [4, 4, 4]
-             })
+             Game.new(
+               3,
+               %TowerSolver.Constraints{
+                 top: [1, 1, 1],
+                 bottom: [2, 2, 2],
+                 left: [3, 3, 3],
+                 right: [4, 4, 4]
+               },
+               &ListBoard.new/1
+             )
            ) == """
             | 1 1 1 |
            ===========
@@ -52,11 +56,19 @@ defmodule TowerSolverTest do
       right: []
     }
 
-    assert TowerSolver.Game.new(2, constraints) == %TowerSolver.Game{
-             size: 2,
-             constraints: constraints,
-             board: %ListBoard{board: [[0, 0], [0, 0]]}
-           }
+    assert TowerSolver.Game.new(2, constraints, &ListBoard.new/1) ==
+             %TowerSolver.Game{
+               size: 2,
+               constraints: constraints,
+               board: %ListBoard{board: [[0, 0], [0, 0]]}
+             }
+
+    assert TowerSolver.Game.new(2, constraints, &TupleBoard.new/1) ==
+             %TowerSolver.Game{
+               size: 2,
+               constraints: constraints,
+               board: %TupleBoard{board: {{0, 0}, {0, 0}}}
+             }
   end
 
   test "game valid?" do
@@ -90,7 +102,7 @@ defmodule TowerSolverTest do
       board: %ListBoard{board: [[1, 2, 3], [2, 3, 1], [3, 1, 2]]}
     }
 
-    game = Game.new(3, constraints)
+    game = Game.new(3, constraints, &ListBoard.new/1)
     [result] = Game.solve(game)
     assert result == expected_solution
   end
@@ -103,7 +115,7 @@ defmodule TowerSolverTest do
       right: [2, 3, 2, 5, 1, 2]
     }
 
-    game = Game.new(6, constraints)
+    game = Game.new(6, constraints, &ListBoard.new/1)
     board = game.board
     board = Board.set(board, 0, 1, 2)
     board = Board.set(board, 4, 4, 5)

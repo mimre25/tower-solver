@@ -10,7 +10,7 @@ defmodule TowerSolver.CLI do
       right: [2, 3, 2, 5, 1, 2]
     }
 
-    game = TowerSolver.Game.new(6, constraints)
+    game = TowerSolver.Game.new(6, constraints, &TupleBoard.new/1)
     board = game.board
 
     board = Board.set(board, 0, 1, 2)

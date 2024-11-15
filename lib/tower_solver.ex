@@ -67,12 +67,13 @@ defmodule TowerSolver do
     @enforce_keys [:size, :constraints, :board]
     defstruct [:size, :constraints, :board]
 
-    @spec new(integer(), TowerSolver.Constraints.t()) :: Game.t()
-    def new(size, constraints) do
+    @spec new(integer(), TowerSolver.Constraints.t(), (integer() -> Board.t())) ::
+            Game.t()
+    def new(size, constraints, board_constructor) do
       %Game{
         size: size,
         constraints: constraints,
-        board: ListBoard.new(size)
+        board: board_constructor.(size)
       }
     end
 
@@ -88,7 +89,7 @@ defmodule TowerSolver do
           "\n" <>
           (Enum.zip([
              term.constraints.left,
-             term.board.board,
+             Board.rows(term.board),
              term.constraints.right
            ])
            |> Enum.map_join("\n", board_line)) <>
@@ -187,7 +188,7 @@ defmodule TowerSolver do
 
       Enum.filter(permus, fn p ->
         valid_line?(p, {c1, c2}) and
-          fits_preset?(Enum.at(game.board.board, step), p)
+          fits_preset?(Enum.at(Board.rows(game.board), step), p)
       end)
       |> Kernel.tap(fn filtered_permus ->
         # Update progress bar
@@ -219,25 +220,31 @@ defmodule TowerSolver do
     end
 
     def example() do
-      Game.new(3, %TowerSolver.Constraints{
-        top: [3, 2, 1],
-        bottom: [1, 2, 2],
-        left: [3, 2, 1],
-        right: [1, 2, 2]
-      })
+      Game.new(
+        3,
+        %TowerSolver.Constraints{
+          top: [3, 2, 1],
+          bottom: [1, 2, 2],
+          left: [3, 2, 1],
+          right: [1, 2, 2]
+        },
+        &ListBoard.new/1
+      )
     end
 
     def example(size) do
       replicate = fn x -> for _ <- 1..size, do: x end
 
-      Game.new(size, %TowerSolver.Constraints{
-        top: replicate.(1),
-        bottom: replicate.(2),
-        left: replicate.(3),
-        right: replicate.(4)
-      })
+      Game.new(
+        size,
+        %TowerSolver.Constraints{
+          top: replicate.(1),
+          bottom: replicate.(2),
+          left: replicate.(3),
+          right: replicate.(4)
+        },
+        &ListBoard.new/1
+      )
     end
   end
-
-
 end
