@@ -143,11 +143,13 @@ defmodule TowerSolver do
     end
 
     # TODO: make this and others private
+    #TODO: this is a function of board, not of game
     @spec has_duplicates?([integer()]) :: boolean()
     def has_duplicates?(list) do
       Enum.uniq(list) != list
     end
 
+    #TODO: this is a function of board, not of game
     @spec valid_line?([any(), ...]) :: boolean()
     def valid_line?([list, fst, snd]) do
       valid_line?(list, fst) && valid_line?(Enum.reverse(list), snd)
@@ -192,6 +194,31 @@ defmodule TowerSolver do
       end
     end
 
+    def do_step(p, game, step, permus_length, agent, child_candidates, permus) do
+      updated_game = %{game | :board => Board.set_row(game.board, step, p)}
+
+      cols = Board.cols(updated_game.board)
+
+      if should_abort_step?(cols) do
+        Progress.add_done(agent, child_candidates)
+        []
+      else
+        solve_step(updated_game, step + 1, permus, agent, permus_length)
+      end
+    end
+
+    def foo(filtered_permus, game, step, permus_length, agent, child_candidates, permus) do
+      if step < 1 do
+        Task.async_stream(filtered_permus, fn p ->
+          do_step(p, game, step, permus_length, agent, child_candidates, permus)
+        end, [timeout: :infinity]) |> Enum.map(fn {:ok, t} -> t end) |> Enum.concat()
+      else
+        Enum.flat_map(filtered_permus, fn p ->
+          do_step(p, game, step, permus_length, agent, child_candidates, permus)
+        end)
+      end
+    end
+
     def solve_step(game, step, permus, agent, permus_length) do
       c1 = Enum.at(game.constraints.left, step)
       c2 = Enum.at(game.constraints.right, step)
@@ -208,20 +235,10 @@ defmodule TowerSolver do
         n = removed_candidates * child_candidates
         Progress.add_done(agent, n)
       end)
-      |> Enum.flat_map(fn p ->
-        updated_game = %{game | :board => Board.set_row(game.board, step, p)}
-
-        cols = Board.cols(updated_game.board)
-
-        if should_abort_step?(cols) do
-          Progress.add_done(agent, child_candidates)
-          []
-        else
-          solve_step(updated_game, step + 1, permus, agent, permus_length)
-        end
-      end)
+      |> foo(game, step, permus_length, agent, child_candidates, permus)
     end
 
+    #TODO: this is a function of board, not of game
     defp should_abort_step?(cols) do
       Enum.map(cols, fn c ->
         Enum.filter(
